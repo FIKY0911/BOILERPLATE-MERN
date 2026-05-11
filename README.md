@@ -1,5 +1,7 @@
 # MERN Boilerplate Generator
 
+> [Bahasa Indonesia](README.md) | [English](README_EN.md)
+
 > Generate full-stack MERN project dalam hitungan detik.  
 > **Express MVC** (Backend) + **React Atomic Design** (Frontend) + **NGINX** (Reverse Proxy)
 
