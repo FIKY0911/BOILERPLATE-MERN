@@ -48,14 +48,14 @@ This boilerplate supports automated pushing to GitHub using the **SSH** protocol
 ```
 <project-name>/
 │
-├── backend/                    ← Express MVC REST API
+├── backend/                    ← Express MVC REST API (SaaS Ready)
 │   ├── src/
 │   │   ├── config/db.js        ← MongoDB Connection
-│   │   ├── controllers/        ← CRUD Logic
-│   │   ├── models/             ← Mongoose Schema
+│   │   ├── controllers/        ← Auth & Workspace Logic
+│   │   ├── models/             ← User & Workspace Schemas
 │   │   ├── routes/             ← Express Router
-│   │   └── middlewares/        ← Error Handler, Not Found, Security
-│   ├── app.js                  ← Express Setup (Helmet, Rate-limit)
+│   │   └── middlewares/        ← Auth (JWT), RBAC, Error Handler
+│   ├── app.js                  ← Express Setup (Security & SaaS Routes)
 │   ├── server.js               ← Entry Point
 │   └── .env                    ← Auto-generated Config
 │
@@ -63,11 +63,11 @@ This boilerplate supports automated pushing to GitHub using the **SSH** protocol
 │   └── src/
 │       ├── components/
 │       │   ├── atoms/          ← Button, Input, Badge, Spinner
-│       │   ├── molecules/      ← FormField, SearchBar, ItemCard
-│       │   ├── organisms/      ← Navbar, ItemForm, ItemList
-│       │   ├── templates/      ← MainLayout
-│       │   └── pages/          ← HomePage, ItemsPage
-│       ├── hooks/              ← useItems (Custom CRUD Hook)
+│       │   ├── molecules/      ← FormField, SearchBar, Card
+│       │   ├── organisms/      ← Navbar, Sidebar, DataGrid
+│       │   ├── templates/      ← DashboardLayout
+│       │   └── pages/          ← LoginPage, Dashboard, Settings
+│       ├── hooks/              ← useAuth, useWorkspace
 │       ├── services/           ← Axios API Service
 │       ├── App.jsx
 │       └── index.css           ← Premium Dark Theme
@@ -82,13 +82,13 @@ This boilerplate supports automated pushing to GitHub using the **SSH** protocol
 
 ## 🌐 API Endpoints
 
-| Method | Endpoint       | Description        |
-|--------|----------------|--------------------|
-| GET    | /api/items     | Get all items      |
-| GET    | /api/items/:id | Get item by ID     |
-| POST   | /api/items     | Create new item    |
-| PUT    | /api/items/:id | Update item        |
-| DELETE | /api/items/:id | Delete item        |
+| Method | Endpoint             | Description              |
+|--------|----------------------|--------------------------|
+| POST   | /api/auth/register    | Register new user        |
+| POST   | /api/auth/login       | User login               |
+| GET    | /api/auth/me          | Get current user profile |
+| GET    | /api/workspaces       | Get all user workspaces  |
+| POST   | /api/workspaces       | Create a new workspace   |
 
 ---
 

@@ -217,25 +217,38 @@ echo -e "${GREEN}  ✓ Security configured.${RESET}"
 # STEP 4 — .env files
 # ════════════════════════════════════════════════════════════════
 echo -e "${BOLD}[4/6] 🔐 Creating .env files...${RESET}"
+
+# Generate random JWT Secret
+JWT_SECRET=$(node -e "console.log(require('crypto').randomBytes(64).toString('hex'))")
+
 cat > "${BACKEND_DIR}/.env" <<EOF
 PORT=${BACKEND_PORT}
 MONGO_URI=mongodb://127.0.0.1:27017/${DB_NAME}
+JWT_SECRET=${JWT_SECRET}
+JWT_EXPIRE=30d
 NODE_ENV=development
 EOF
 
 cat > "${FRONTEND_DIR}/.env" <<EOF
-VITE_API_URL=http://localhost:${NGINX_PORT}/api
+VITE_API_URL=http://localhost:${BACKEND_PORT}/api
 EOF
 echo -e "${GREEN}  ✓ .env files created.${RESET}"
 
 # ════════════════════════════════════════════════════════════════
 # STEP 5 — Dependencies
 # ════════════════════════════════════════════════════════════════
-echo -e "${BOLD}[5/6] 📦 Installing npm dependencies...${RESET}"
+echo -e "${BOLD}[5/6] 📦 Installing npm dependencies (this may take a while)...${RESET}"
 echo -e "  → Backend..."
-(cd "$BACKEND_DIR" && npm install --silent 2>&1)
+if ! (cd "$BACKEND_DIR" && npm install); then
+  echo -e "${RED}✗ Backend dependencies failed to install.${RESET}"
+  exit 1
+fi
+
 echo -e "  → Frontend..."
-(cd "$FRONTEND_DIR" && npm install --silent 2>&1)
+if ! (cd "$FRONTEND_DIR" && npm install); then
+  echo -e "${RED}✗ Frontend dependencies failed to install.${RESET}"
+  exit 1
+fi
 echo -e "${GREEN}  ✓ Dependencies installed.${RESET}"
 
 # ════════════════════════════════════════════════════════════════
@@ -275,9 +288,16 @@ kill_port() {
 kill_port "\$BACKEND_PORT"
 kill_port "\$FRONTEND_PORT"
 
+# Check for node_modules
+if [ ! -d "\$SCRIPT_DIR/backend/node_modules" ] || [ ! -d "\$SCRIPT_DIR/frontend/node_modules" ]; then
+  echo -e "\${RED}✗ node_modules missing. Running npm install...\${RESET}"
+  (cd "\$SCRIPT_DIR/backend" && npm install)
+  (cd "\$SCRIPT_DIR/frontend" && npm install)
+fi
+
 (cd "\$SCRIPT_DIR/backend" && npm run dev) &
 BACKEND_PID=\$!
-sleep 1
+sleep 2
 (cd "\$SCRIPT_DIR/frontend" && npm run dev) &
 FRONTEND_PID=\$!
 

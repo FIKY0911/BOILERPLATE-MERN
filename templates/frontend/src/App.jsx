@@ -1,15 +1,12 @@
 import { Routes, Route } from 'react-router-dom';
-import { MainLayout } from './components/templates';
-import { HomePage, ItemsPage, ItemDetailPage } from './components/pages';
+import { DashboardPage } from './components/pages/index.js';
 
 function App() {
   return (
     <Routes>
-      <Route element={<MainLayout />}>
-        <Route path="/" element={<HomePage />} />
-        <Route path="/items" element={<ItemsPage />} />
-        <Route path="/items/:id" element={<ItemDetailPage />} />
-      </Route>
+      <Route path="/" element={<DashboardPage />} />
+      {/* Fallback for other routes in this demo */}
+      <Route path="*" element={<DashboardPage />} />
     </Routes>
   );
 }

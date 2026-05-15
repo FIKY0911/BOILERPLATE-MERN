@@ -48,14 +48,14 @@ Boilerplate ini mendukung push otomatis ke GitHub menggunakan protokol **SSH**.
 ```
 <project-name>/
 │
-├── backend/                    ← Express MVC REST API
+├── backend/                    ← Express MVC REST API (SaaS Ready)
 │   ├── src/
 │   │   ├── config/db.js        ← Koneksi MongoDB
-│   │   ├── controllers/        ← Logic CRUD
-│   │   ├── models/             ← Mongoose Schema
+│   │   ├── controllers/        ← Logic Auth & Workspace
+│   │   ├── models/             ← User & Workspace Schema
 │   │   ├── routes/             ← Express Router
-│   │   └── middlewares/        ← Error Handler, Not Found
-│   ├── app.js                  ← Express setup
+│   │   └── middlewares/        ← Auth (JWT), RBAC, Error Handler
+│   ├── app.js                  ← Express setup (Security & SaaS Routes)
 │   ├── server.js               ← Entry point
 │   └── .env                    ← Konfigurasi otomatis
 │
@@ -63,11 +63,11 @@ Boilerplate ini mendukung push otomatis ke GitHub menggunakan protokol **SSH**.
 │   └── src/
 │       ├── components/
 │       │   ├── atoms/          ← Button, Input, Badge, Spinner
-│       │   ├── molecules/      ← FormField, SearchBar, ItemCard
-│       │   ├── organisms/      ← Navbar, ItemForm, ItemList
-│       │   ├── templates/      ← MainLayout
-│       │   └── pages/          ← HomePage, ItemsPage, ItemDetailPage
-│       ├── hooks/              ← useItems (custom CRUD hook)
+│       │   ├── molecules/      ← FormField, SearchBar, Card
+│       │   ├── organisms/      ← Navbar, Sidebar, DataGrid
+│       │   ├── templates/      ← DashboardLayout
+│       │   └── pages/          ← LoginPage, Dashboard, Settings
+│       ├── hooks/              ← useAuth, useWorkspace
 │       ├── services/           ← Axios API service
 │       ├── App.jsx
 │       └── index.css           ← Premium dark theme
@@ -82,13 +82,25 @@ Boilerplate ini mendukung push otomatis ke GitHub menggunakan protokol **SSH**.
 
 ## 🌐 API Endpoints
 
-| Method | Endpoint       | Deskripsi          |
-|--------|----------------|--------------------|
-| GET    | /api/items     | Ambil semua items  |
-| GET    | /api/items/:id | Ambil item by ID   |
-| POST   | /api/items     | Buat item baru     |
-| PUT    | /api/items/:id | Update item        |
-| DELETE | /api/items/:id | Hapus item         |
+| Method | Endpoint             | Deskripsi          |
+|--------|----------------------|--------------------|
+| POST   | /api/auth/register    | Daftar user baru   |
+| POST   | /api/auth/login       | Login user         |
+| GET    | /api/auth/me          | Ambil profil user  |
+| GET    | /api/workspaces       | Ambil workspaces   |
+| POST   | /api/workspaces       | Buat workspace baru|
+
+---
+
+## 🔐 Autentikasi & Keamanan
+
+Boilerplate ini sudah dilengkapi dengan sistem autentikasi menggunakan **JWT (JSON Web Token)** dan **bcryptjs**.
+
+### Fitur:
+- **Password Hashing**: Meng-hash password secara otomatis sebelum disimpan ke database menggunakan `bcryptjs`.
+- **JWT Generation**: Method bawaan untuk menghasilkan token bagi user yang terautentikasi.
+- **Auth Middleware**: Middleware `protect` untuk mengamankan route dan `authorize` untuk akses berdasarkan role (admin/owner/member).
+- **Setup JWT Secret**: Tambahkan string aman Anda sendiri ke `JWT_SECRET` di file `.env`.
 
 ---
 

@@ -1,19 +1,19 @@
-const express = require('express');
-const cors = require('cors');
-const morgan = require('morgan');
-
-// Security middlewares
-const helmet = require('helmet');
-const rateLimit = require('express-rate-limit');
-const mongoSanitize = require('express-mongo-sanitize');
-const hpp = require('hpp');
+import express from 'express';
+import cors from 'cors';
+import morgan from 'morgan';
+import helmet from 'helmet';
+import rateLimit from 'express-rate-limit';
+import mongoSanitize from 'express-mongo-sanitize';
+import hpp from 'hpp';
+import cookieParser from 'cookie-parser';
 
 // Import routes
-const itemRoutes = require('./src/routes/itemRoutes');
+import authRoutes from './src/routes/authRoutes.js';
+import workspaceRoutes from './src/routes/workspaceRoutes.js';
 
 // Import middlewares
-const errorHandler = require('./src/middlewares/errorHandler');
-const notFound = require('./src/middlewares/notFound');
+import errorHandler from './src/middlewares/errorHandler.js';
+import notFound from './src/middlewares/notFound.js';
 
 const app = express();
 
@@ -41,6 +41,7 @@ app.use(cors());
 // ─── GLOBAL MIDDLEWARES ─────────────────────────────
 app.use(express.json({ limit: '10kb' })); // Limit body size
 app.use(express.urlencoded({ extended: true, limit: '10kb' }));
+app.use(cookieParser());
 
 // Logger — hanya di development
 if (process.env.NODE_ENV === 'development') {
@@ -51,18 +52,20 @@ if (process.env.NODE_ENV === 'development') {
 app.get('/api', (req, res) => {
   res.json({
     success: true,
-    message: '🚀 {{PROJECT_NAME}} API is running!',
+    message: '🚀 {{PROJECT_NAME}} SaaS API is running!',
     version: '1.0.0',
     endpoints: {
-      items: '/api/items',
+      auth: '/api/auth',
+      workspaces: '/api/workspaces',
     },
   });
 });
 
-app.use('/api/items', itemRoutes);
+app.use('/api/auth', authRoutes);
+app.use('/api/workspaces', workspaceRoutes);
 
 // ─── ERROR HANDLING ─────────────────────────────────
 app.use(notFound);
 app.use(errorHandler);
 
-module.exports = app;
+export default app;

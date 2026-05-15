@@ -1,3 +1,7 @@
+@tailwind base;
+@tailwind components;
+@tailwind utilities;
+
 /* ══════════════════════════════════════════════════════════════
    {{PROJECT_NAME}} — Global Styles (Premium Dark Theme)
    ══════════════════════════════════════════════════════════════ */

@@ -1,3 +1,7 @@
-export { HomePage } from './HomePage/HomePage';
-export { ItemsPage } from './ItemsPage/ItemsPage';
-export { ItemDetailPage } from './ItemDetailPage/ItemDetailPage';
+import DashboardPage from './DashboardPage';
+// import LoginPage from './LoginPage';
+
+export {
+  DashboardPage,
+  // LoginPage
+};
