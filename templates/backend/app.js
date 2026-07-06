@@ -9,7 +9,6 @@ import cookieParser from 'cookie-parser';
 
 // Import routes
 import authRoutes from './src/routes/authRoutes.js';
-import workspaceRoutes from './src/routes/workspaceRoutes.js';
 
 // Import middlewares
 import errorHandler from './src/middlewares/errorHandler.js';
@@ -56,13 +55,25 @@ app.get('/api', (req, res) => {
     version: '1.0.0',
     endpoints: {
       auth: '/api/auth',
-      workspaces: '/api/workspaces',
     },
   });
 });
 
 app.use('/api/auth', authRoutes);
-app.use('/api/workspaces', workspaceRoutes);
+
+// ─── ADMIN PANEL (REACT TS) ─────────────────────────
+import path from 'path';
+import { fileURLToPath } from 'url';
+
+const __filename = fileURLToPath(import.meta.url);
+const __dirname = path.dirname(__filename);
+
+app.use('/admin', express.static(path.join(__dirname, 'src/views/admin/dist')));
+app.get('/admin/*', (req, res) => {
+  res.sendFile(path.join(__dirname, 'src/views/admin/dist/index.html'));
+});
+
+app.use('/uploads', express.static(path.join(__dirname, 'uploads')));
 
 // ─── ERROR HANDLING ─────────────────────────────────
 app.use(notFound);

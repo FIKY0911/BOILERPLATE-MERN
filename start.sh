@@ -86,18 +86,6 @@ else
   NGINX_MISSING=true
 fi
 
-# MongoDB Check
-echo -e "${BOLD}🍃 Checking MongoDB...${RESET}"
-if command -v mongosh &>/dev/null || command -v mongo &>/dev/null; then
-  if mongosh --eval "db.adminCommand('ping')" --quiet &>/dev/null || mongo --eval "db.adminCommand('ping')" --quiet &>/dev/null; then
-    echo -e "${GREEN}✓ MongoDB is running.${RESET}"
-  else
-    echo -e "${YELLOW}⚠ MongoDB is installed but seems to be stopped.${RESET}"
-    echo -e "${YELLOW}  Run: sudo systemctl start mongod (Linux) or sudo service mongodb start (WSL)${RESET}"
-  fi
-else
-  echo -e "${RED}✗ MongoDB (mongosh/mongo) not found. Please ensure it is installed.${RESET}"
-fi
 echo ""
 
 # ─── Input Phase ────────────────────────────────────────────────
@@ -114,7 +102,34 @@ while true; do
 done
 
 while true; do
-  echo -ne "${BOLD}🍃 MongoDB database name (e.g., my_app_db): ${RESET}"
+  echo -ne "${BOLD}🗄️ Database type (mongodb/postgres/mysql) [mongodb]: ${RESET}"
+  read -r DB_TYPE
+  DB_TYPE="${DB_TYPE:-mongodb}"
+  if [[ "$DB_TYPE" == "mongodb" || "$DB_TYPE" == "postgres" || "$DB_TYPE" == "mysql" ]]; then
+    break
+  else
+    echo -e "${RED}  ✗ Please enter 'mongodb', 'postgres', or 'mysql'.${RESET}"
+  fi
+done
+
+if [ "$DB_TYPE" == "postgres" ]; then
+  echo -ne "${BOLD}👤 DB username [postgres]: ${RESET}"
+  read -r DB_USER
+  DB_USER="${DB_USER:-postgres}"
+  echo -ne "${BOLD}🔑 DB password [postgres]: ${RESET}"
+  read -r DB_PASSWORD
+  DB_PASSWORD="${DB_PASSWORD:-postgres}"
+elif [ "$DB_TYPE" == "mysql" ]; then
+  echo -ne "${BOLD}👤 DB username [root]: ${RESET}"
+  read -r DB_USER
+  DB_USER="${DB_USER:-root}"
+  echo -ne "${BOLD}🔑 DB password (leave empty for none): ${RESET}"
+  read -r DB_PASSWORD
+  DB_PASSWORD="${DB_PASSWORD:-}"
+fi
+
+while true; do
+  echo -ne "${BOLD}🗄️ Database name (e.g., my_app_db): ${RESET}"
   read -r DB_NAME
   if [[ -z "$DB_NAME" ]]; then
     echo -e "${RED}  ✗ Database name cannot be empty.${RESET}"
@@ -138,16 +153,33 @@ echo -ne "${BOLD}🚦 NGINX port [80]: ${RESET}"
 read -r NGINX_PORT
 NGINX_PORT="${NGINX_PORT:-80}"
 
+while true; do
+  echo -ne "${BOLD}⚛️ Frontend language (js/ts) [js]: ${RESET}"
+  read -r FRONTEND_LANG
+  FRONTEND_LANG="${FRONTEND_LANG:-js}"
+  if [[ "$FRONTEND_LANG" == "js" || "$FRONTEND_LANG" == "ts" ]]; then
+    break
+  else
+    echo -e "${RED}  ✗ Please enter 'js' or 'ts'.${RESET}"
+  fi
+done
+
 # ─── Confirmation ─────────────────────────────────────────────────
 echo ""
 echo -e "──────────────────────────────────────────────"
 echo -e "${BOLD}  Project Configuration:${RESET}"
 echo ""
 echo -e "  ${CYAN}Project Name    :${RESET} ${PROJECT_NAME}"
-echo -e "  ${CYAN}Database        :${RESET} ${DB_NAME}"
+echo -e "  ${CYAN}Database Type   :${RESET} ${DB_TYPE}"
+if [ "$DB_TYPE" != "mongodb" ]; then
+  echo -e "  ${CYAN}DB User         :${RESET} ${DB_USER}"
+  echo -e "  ${CYAN}DB Password     :${RESET} $(echo ${DB_PASSWORD} | sed 's/./*/g')"
+fi
+echo -e "  ${CYAN}Database Name   :${RESET} ${DB_NAME}"
 echo -e "  ${CYAN}GitHub User     :${RESET} ${GITHUB_USER:-None}"
 echo -e "  ${CYAN}Backend Port    :${RESET} ${BACKEND_PORT}"
 echo -e "  ${CYAN}Frontend Port   :${RESET} ${FRONTEND_PORT}"
+echo -e "  ${CYAN}Frontend Lang   :${RESET} ${FRONTEND_LANG}"
 echo -e "  ${CYAN}NGINX Port      :${RESET} ${NGINX_PORT}"
 echo -e "  ${CYAN}Directory       :${RESET} $(pwd)/${PROJECT_NAME}"
 echo ""
@@ -181,8 +213,64 @@ fi
 echo -e "${BOLD}[1/6] 📂 Creating folder structure...${RESET}"
 mkdir -p "$TARGET_DIR"
 cp -r "${TEMPLATE_DIR}/backend"  "$BACKEND_DIR"
-cp -r "${TEMPLATE_DIR}/frontend" "$FRONTEND_DIR"
 cp -r "${TEMPLATE_DIR}/nginx"    "$NGINX_DIR"
+
+echo -e "${CYAN}  → Applying database template (${DB_TYPE})...${RESET}"
+if [ "$DB_TYPE" == "mongodb" ]; then
+  cp -r "${TEMPLATE_DIR}/backend-db/mongodb/"* "$BACKEND_DIR/"
+elif [ "$DB_TYPE" == "postgres" ]; then
+  cp -r "${TEMPLATE_DIR}/backend-db/prisma/"* "$BACKEND_DIR/"
+  mkdir -p "$BACKEND_DIR/prisma"
+  cp "${TEMPLATE_DIR}/backend-db/postgres/prisma/schema.prisma" "$BACKEND_DIR/prisma/schema.prisma"
+  sed -i '/import mongoSanitize/d' "$BACKEND_DIR/app.js"
+  sed -i '/app.use(mongoSanitize())/d' "$BACKEND_DIR/app.js"
+  rm -rf "$BACKEND_DIR/src/models"
+elif [ "$DB_TYPE" == "mysql" ]; then
+  cp -r "${TEMPLATE_DIR}/backend-db/prisma/"* "$BACKEND_DIR/"
+  mkdir -p "$BACKEND_DIR/prisma"
+  cp "${TEMPLATE_DIR}/backend-db/mysql/prisma/schema.prisma" "$BACKEND_DIR/prisma/schema.prisma"
+  sed -i '/import mongoSanitize/d' "$BACKEND_DIR/app.js"
+  sed -i '/app.use(mongoSanitize())/d' "$BACKEND_DIR/app.js"
+  rm -rf "$BACKEND_DIR/src/models"
+fi
+
+echo -e "${CYAN}  → Generating Vite Frontend (${FRONTEND_LANG})...${RESET}"
+TEMPLATE_FLAG="react"
+VITE_EXT="js"
+if [ "$FRONTEND_LANG" == "ts" ]; then
+  TEMPLATE_FLAG="react-ts"
+  VITE_EXT="ts"
+fi
+
+cd "$TARGET_DIR"
+npx --yes create-vite@latest frontend --template "$TEMPLATE_FLAG" --no-interactive > /dev/null 2>&1
+cd "$SCRIPT_DIR"
+
+mkdir -p "$FRONTEND_DIR/src/components/atoms"
+mkdir -p "$FRONTEND_DIR/src/components/molecules"
+mkdir -p "$FRONTEND_DIR/src/components/organisms"
+mkdir -p "$FRONTEND_DIR/src/components/templates"
+mkdir -p "$FRONTEND_DIR/src/pages"
+
+cat > "${FRONTEND_DIR}/vite.config.${VITE_EXT}" <<EOF
+import { defineConfig } from 'vite';
+import react from '@vitejs/plugin-react';
+
+export default defineConfig({
+  plugins: [react()],
+  server: {
+    host: '0.0.0.0',
+    port: Number('{{FRONTEND_PORT}}'),
+    proxy: {
+      '/api': {
+        target: 'http://127.0.0.1:{{BACKEND_PORT}}',
+        changeOrigin: true,
+      },
+    },
+  },
+});
+EOF
+
 echo -e "${GREEN}  ✓ Folder created: ${TARGET_DIR}${RESET}"
 
 # ════════════════════════════════════════════════════════════════
@@ -192,6 +280,7 @@ echo -e "${BOLD}[2/6] 🔧 Configuring project...${RESET}"
 
 find "$TARGET_DIR" -type f \( \
   -name "*.js"   -o -name "*.jsx"  -o -name "*.json" \
+  -o -name "*.ts" -o -name "*.tsx" \
   -o -name "*.css" -o -name "*.html" \
   -o -name "*.conf" -o -name "*.example" \
 \) | while IFS= read -r f; do
@@ -221,13 +310,52 @@ echo -e "${BOLD}[4/6] 🔐 Creating .env files...${RESET}"
 # Generate random JWT Secret
 JWT_SECRET=$(node -e "console.log(require('crypto').randomBytes(64).toString('hex'))")
 
-cat > "${BACKEND_DIR}/.env" <<EOF
+if [ "$DB_TYPE" == "mongodb" ]; then
+  cat > "${BACKEND_DIR}/.env" <<EOF
 PORT=${BACKEND_PORT}
 MONGO_URI=mongodb://127.0.0.1:27017/${DB_NAME}
 JWT_SECRET=${JWT_SECRET}
 JWT_EXPIRE=30d
 NODE_ENV=development
 EOF
+  cat > "${BACKEND_DIR}/.env.example" <<EOF
+PORT=5000
+MONGO_URI=mongodb://127.0.0.1:27017/${DB_NAME}
+JWT_SECRET=
+JWT_EXPIRE=30d
+NODE_ENV=development
+EOF
+elif [ "$DB_TYPE" == "postgres" ]; then
+  cat > "${BACKEND_DIR}/.env" <<EOF
+PORT=${BACKEND_PORT}
+DATABASE_URL=postgresql://${DB_USER}:${DB_PASSWORD}@localhost:5432/${DB_NAME}
+JWT_SECRET=${JWT_SECRET}
+JWT_EXPIRE=30d
+NODE_ENV=development
+EOF
+  cat > "${BACKEND_DIR}/.env.example" <<EOF
+PORT=5000
+DATABASE_URL=postgresql://${DB_USER}:${DB_PASSWORD}@localhost:5432/${DB_NAME}
+JWT_SECRET=
+JWT_EXPIRE=30d
+NODE_ENV=development
+EOF
+elif [ "$DB_TYPE" == "mysql" ]; then
+  cat > "${BACKEND_DIR}/.env" <<EOF
+PORT=${BACKEND_PORT}
+DATABASE_URL=mysql://${DB_USER}:${DB_PASSWORD}@localhost:3306/${DB_NAME}
+JWT_SECRET=${JWT_SECRET}
+JWT_EXPIRE=30d
+NODE_ENV=development
+EOF
+  cat > "${BACKEND_DIR}/.env.example" <<EOF
+PORT=5000
+DATABASE_URL=mysql://${DB_USER}:${DB_PASSWORD}@localhost:3306/${DB_NAME}
+JWT_SECRET=
+JWT_EXPIRE=30d
+NODE_ENV=development
+EOF
+fi
 
 cat > "${FRONTEND_DIR}/.env" <<EOF
 VITE_API_URL=http://localhost:${BACKEND_PORT}/api
@@ -239,9 +367,32 @@ echo -e "${GREEN}  ✓ .env files created.${RESET}"
 # ════════════════════════════════════════════════════════════════
 echo -e "${BOLD}[5/6] 📦 Installing npm dependencies (this may take a while)...${RESET}"
 echo -e "  → Backend..."
+
+# Adjust package.json for non-MongoDB databases
+if [ "$DB_TYPE" != "mongodb" ]; then
+  node -e "
+    const fs = require('fs');
+    const pkg = JSON.parse(fs.readFileSync('${BACKEND_DIR}/package.json', 'utf8'));
+    delete pkg.dependencies.mongoose;
+    delete pkg.dependencies['express-mongo-sanitize'];
+    pkg.dependencies['@prisma/client'] = '^6.19.3';
+    pkg.devDependencies = pkg.devDependencies || {};
+    pkg.devDependencies.prisma = '^6.19.3';
+    pkg.scripts.postinstall = 'prisma generate';
+    pkg.keywords = pkg.keywords.filter(k => k !== 'mongodb').concat('prisma', '${DB_TYPE}');
+    fs.writeFileSync('${BACKEND_DIR}/package.json', JSON.stringify(pkg, null, 2));
+  "
+fi
+
 if ! (cd "$BACKEND_DIR" && npm install); then
   echo -e "${RED}✗ Backend dependencies failed to install.${RESET}"
   exit 1
+fi
+
+# Prisma: push schema to database
+if [ "$DB_TYPE" != "mongodb" ]; then
+  echo -e "  → Pushing Prisma schema to database..."
+  (cd "$BACKEND_DIR" && npx prisma db push --accept-data-loss 2>/dev/null) || echo -e "${YELLOW}  ⚠ Could not push schema. Make sure your database is running.${RESET}"
 fi
 
 echo -e "  → Frontend..."

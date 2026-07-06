@@ -2,8 +2,10 @@
 
 > [Bahasa Indonesia](README.md) | [English](README_EN.md)
 
-> Generate full-stack MERN project dalam hitungan detik.  
+> Generate full-stack project dalam hitungan detik.  
 > **Express MVC** (Backend) + **React Atomic Design** (Frontend) + **NGINX** (Reverse Proxy)
+> 
+> 🔄 **Multi-Database**: MongoDB (Mongoose) · PostgreSQL (Prisma) · MySQL (Prisma)
 
 ---
 
@@ -18,11 +20,14 @@ chmod +x start.sh
 
 Ikuti prompt interaktif:
 1. **Nama project** — nama folder project yang akan dibuat (tanpa spasi)
-2. **Nama database** — nama MongoDB database
-3. **Port backend** — default `5000`
-4. **Port frontend** — default `5173`
-5. **Port NGINX** — default `80`
-6. **Git/GitHub** — otomatis inisialisasi repo dan push ke GitHub via **SSH** (mendukung `gh` CLI)
+2. **Database type** — pilih database: `mongodb`, `postgres`, atau `mysql`
+3. **DB username & password** (khusus postgres/mysql) — kredensial database
+4. **Nama database** — nama database yang akan digunakan
+5. **Frontend language** — pilih `js` atau `ts` untuk men-generate React Vite
+6. **Port backend** — default `5000`
+7. **Port frontend** — default `5173`
+8. **Port NGINX** — default `80`
+9. **Git/GitHub** — otomatis inisialisasi repo dan push ke GitHub via **SSH** (mendukung `gh` CLI)
 
 Setelah selesai, masuk ke folder project dan jalankan:
 
@@ -30,6 +35,22 @@ Setelah selesai, masuk ke folder project dan jalankan:
 cd <nama-project>
 ./run.sh
 ```
+
+---
+
+## 🗄️ Dukungan Database
+
+| Database      | ORM        | Connection String (`.env`)                         |
+|---------------|------------|----------------------------------------------------|
+| **MongoDB**   | Mongoose   | `MONGO_URI=mongodb://127.0.0.1:27017/{nama}`       |
+| **PostgreSQL**| Prisma     | `DATABASE_URL=postgresql://{user}:{pass}@localhost:5432/{nama}` |
+| **MySQL**     | Prisma     | `DATABASE_URL=mysql://{user}:{pass}@localhost:3306/{nama}`      |
+
+Script otomatis mengatur:
+- **MongoDB**: instalasi `mongoose` + `express-mongo-sanitize`
+- **PostgreSQL / MySQL**: instalasi `@prisma/client` + `prisma`, generate Prisma Client via `postinstall`, push schema ke database
+
+> **Prompt kredensial**: Saat memilih `postgres` atau `mysql`, script akan meminta username dan password database (dengan default: `postgres`/`postgres` untuk PostgreSQL, `root`/`(kosong)` untuk MySQL).
 
 ---
 
@@ -45,37 +66,53 @@ Boilerplate ini mendukung push otomatis ke GitHub menggunakan protokol **SSH**.
 
 ## 📁 Struktur yang Dihasilkan
 
+### MongoDB
 ```
 <project-name>/
-│
-├── backend/                    ← Express MVC REST API (SaaS Ready)
+├── backend/
 │   ├── src/
-│   │   ├── config/db.js        ← Koneksi MongoDB
-│   │   ├── controllers/        ← Logic Auth & Workspace
-│   │   ├── models/             ← User & Workspace Schema
+│   │   ├── config/db.js        ← Koneksi MongoDB (Mongoose)
+│   │   ├── controllers/        ← Logic HTTP Auth
+│   │   ├── services/           ← Business Logic & Database Queries
+│   │   ├── models/             ← User Schema (Mongoose)
 │   │   ├── routes/             ← Express Router
-│   │   └── middlewares/        ← Auth (JWT), RBAC, Error Handler
-│   ├── app.js                  ← Express setup (Security & SaaS Routes)
+│   │   ├── middlewares/        ← Auth (JWT), RBAC, Error Handler
+│   │   └── views/admin/        ← Admin Panel (React TS)
+│   ├── app.js                  ← Express setup
 │   ├── server.js               ← Entry point
 │   └── .env                    ← Konfigurasi otomatis
 │
 ├── frontend/                   ← React + Vite (Atomic Design)
 │   └── src/
-│       ├── components/
-│       │   ├── atoms/          ← Button, Input, Badge, Spinner
-│       │   ├── molecules/      ← FormField, SearchBar, Card
-│       │   ├── organisms/      ← Navbar, Sidebar, DataGrid
-│       │   ├── templates/      ← DashboardLayout
-│       │   └── pages/          ← LoginPage, Dashboard, Settings
-│       ├── hooks/              ← useAuth, useWorkspace
-│       ├── services/           ← Axios API service
-│       ├── App.jsx
-│       └── index.css           ← Premium dark theme
+│       ├── components/{atoms,molecules,organisms,templates}/
+│       ├── pages/
+│       ├── App.{jsx,tsx}
+│       └── index.css
 │
-├── nginx/
-│   └── nginx.conf              ← Reverse proxy config
+├── nginx/nginx.conf
+└── run.sh
+```
+
+### PostgreSQL / MySQL
+```
+<project-name>/
+├── backend/
+│   ├── prisma/
+│   │   └── schema.prisma       ← Model User (Prisma)
+│   ├── src/
+│   │   ├── config/db.js        ← Koneksi Database (Prisma Client)
+│   │   ├── controllers/        ← Logic HTTP Auth
+│   │   ├── services/           ← Business Logic & Prisma Queries
+│   │   ├── routes/             ← Express Router
+│   │   ├── middlewares/        ← Auth (JWT), RBAC, Error Handler
+│   │   └── views/admin/        ← Admin Panel (React TS)
+│   ├── app.js                  ← Express setup
+│   ├── server.js               ← Entry point
+│   └── .env                    ← Konfigurasi otomatis
 │
-└── run.sh                      ← Jalankan backend + frontend
+├── frontend/                   ← React + Vite (Atomic Design)
+├── nginx/nginx.conf
+└── run.sh
 ```
 
 ---
@@ -87,8 +124,9 @@ Boilerplate ini mendukung push otomatis ke GitHub menggunakan protokol **SSH**.
 | POST   | /api/auth/register    | Daftar user baru   |
 | POST   | /api/auth/login       | Login user         |
 | GET    | /api/auth/me          | Ambil profil user  |
-| GET    | /api/workspaces       | Ambil workspaces   |
-| POST   | /api/workspaces       | Buat workspace baru|
+| PUT    | /api/auth/profile     | Update profil user |
+| GET    | /api/auth/users       | Ambil daftar user (Admin only) |
+| GET    | /admin                | Halaman Admin Panel |
 
 ---
 
@@ -97,9 +135,11 @@ Boilerplate ini mendukung push otomatis ke GitHub menggunakan protokol **SSH**.
 Boilerplate ini sudah dilengkapi dengan sistem autentikasi menggunakan **JWT (JSON Web Token)** dan **bcryptjs**.
 
 ### Fitur:
-- **Password Hashing**: Meng-hash password secara otomatis sebelum disimpan ke database menggunakan `bcryptjs`.
+- **Password Hashing**: Meng-hash password secara otomatis menggunakan `bcryptjs`.
 - **JWT Generation**: Method bawaan untuk menghasilkan token bagi user yang terautentikasi.
 - **Auth Middleware**: Middleware `protect` untuk mengamankan route dan `authorize` untuk akses berdasarkan role (admin/owner/member).
+- **Security Middleware**: Helmet, Rate Limiting, HPP, body size limiter.
+- **NoSQL Injection Protection** (khusus MongoDB): Mencegah serangan NoSQL injection.
 - **Setup JWT Secret**: Tambahkan string aman Anda sendiri ke `JWT_SECRET` di file `.env`.
 
 ---
@@ -119,26 +159,37 @@ sudo nginx -t && sudo nginx -s reload
 ## 🛠️ Prerequisites
 
 - **Node.js** v18+ & **npm**
-- **MongoDB** (berjalan lokal)
-- **NGINX**
+- **Database server** (pilih salah satu):
+  - **MongoDB** — untuk mode `mongodb`
+  - **PostgreSQL** — untuk mode `postgres`
+  - **MySQL** — untuk mode `mysql`
+- **NGINX** (opsional, untuk production)
 
 ```bash
 # Ubuntu/Debian
 sudo apt install nginx
-sudo systemctl start mongodb
+
+# MongoDB
+sudo systemctl start mongod
+
+# PostgreSQL
+sudo systemctl start postgresql
+
+# MySQL
+sudo systemctl start mysql
 ```
 
 ---
 
 ## 📦 Tech Stack
 
-| Layer    | Teknologi                        |
-|----------|----------------------------------|
-| Backend  | Express.js, Mongoose, Morgan     |
-| Frontend | React 18, Vite, React Router     |
-| Database | MongoDB                          |
-| Proxy    | NGINX                            |
-| Design   | Atomic Design Pattern            |
+| Layer    | Teknologi                          |
+|----------|------------------------------------|
+| Backend  | Express.js, Prisma ORM / Mongoose  |
+| Frontend | React 18, Vite, React Router       |
+| Database | MongoDB / PostgreSQL / MySQL       |
+| Proxy    | NGINX                              |
+| Design   | Atomic Design Pattern               |
 
 ---
 
@@ -147,7 +198,7 @@ sudo systemctl start mongodb
 Boilerplate ini sepenuhnya kompatibel dengan **Ubuntu/Debian** dan **WSL (Windows Subsystem for Linux)**.
 
 **Tips WSL:**
-- Pastikan MongoDB berjalan di Windows atau di dalam distro WSL Anda (`sudo service mongodb start`).
+- Pastikan database server berjalan (MongoDB/PostgreSQL/MySQL).
 - Jika menggunakan NGINX di WSL, pastikan port tidak bentrok dengan Windows.
 
 ---
@@ -156,12 +207,28 @@ Boilerplate ini sepenuhnya kompatibel dengan **Ubuntu/Debian** dan **WSL (Window
 
 Jika backend tidak bisa menyambung ke MongoDB:
 
-1. **Cek Status**: Jalankan `mongosh` atau `mongo`. Jika muncul error connection, berarti database belum jalan.
+1. **Cek Status**: Jalankan `mongosh` atau `mongo`. Jika error connection, database belum jalan.
 2. **Jalankan MongoDB**:
    - **Linux Native**: `sudo systemctl start mongod`
    - **WSL**: `sudo service mongodb start`
-3. **Cek Port**: Secara default boilerplate menggunakan port `27017`.
-4. **WSL2 (Database di Windows)**: Jika MongoDB terinstall di Windows (bukan di WSL), ganti `127.0.0.1` di file `.env` backend menjadi IP Windows Anda (cek via `ipconfig` di CMD).
+3. **Cek Port**: Default port `27017`.
+4. **WSL2 (Database di Windows)**: Jika MongoDB terinstall di Windows, ganti `127.0.0.1` di `.env` menjadi IP Windows (cek via `ipconfig` di CMD).
+
+## 💡 Troubleshooting PostgreSQL
+
+1. **Cek Status**: `pg_isready`
+2. **Jalankan**: `sudo systemctl start postgresql`
+3. **Buat database** (jika belum ada): `createdb -U postgres <nama_db>`
+4. **Cek kredensial**: Pastikan `DATABASE_URL` di `.env` sesuai dengan user/password PostgreSQL Anda.
+
+## 💡 Troubleshooting MySQL
+
+1. **Cek Status**: `sudo systemctl status mysql`
+2. **Jalankan**: `sudo systemctl start mysql`
+3. **Buat database** (jika belum ada): `mysql -u root -e "CREATE DATABASE <nama_db>;"`
+4. **Cek kredensial**: Pastikan `DATABASE_URL` di `.env` sesuai dengan user/password MySQL Anda.
+
+> **Tips umum**: Jika Prisma gagal push schema (`prisma db push`), pastikan database server sedang berjalan dan kredensial di `.env` benar. Anda bisa push manual dengan `npx prisma db push` dari folder `backend/`.
 
 **Tips Eksekusi Script:**
-Di Linux/WSL, Anda **harus** menambahkan `./` sebelum nama script untuk menjalankannya dari folder saat ini. Contoh: `./run.sh` atau `./delete_project.sh`.
+Di Linux/WSL, Anda **harus** menambahkan `./` sebelum nama script. Contoh: `./run.sh`.
