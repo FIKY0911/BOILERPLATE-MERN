@@ -36,6 +36,22 @@ cd <project-name>
 ./run.sh
 ```
 
+> **⚠️ Important**: The boilerplate creates the **project structure + connection config**, but does **not create the database/user on the server**. Make sure your database server is running and the database is created before running `run.sh`:
+
+```bash
+# MongoDB (auto-creates database, ready to use)
+sudo systemctl start mongod
+
+# PostgreSQL — create user & database first
+sudo systemctl start postgresql
+sudo -u postgres psql -c "CREATE USER <user> WITH PASSWORD '<pass>';"
+sudo -u postgres psql -c "CREATE DATABASE <db_name> OWNER <user>;"
+
+# MySQL — create database first
+sudo systemctl start mysql
+mysql -u root -p -e "CREATE DATABASE <db_name>;"
+```
+
 ---
 
 ## 🗄️ Database Support
@@ -43,14 +59,16 @@ cd <project-name>
 | Database      | ORM        | Connection String (`.env`)                         |
 |---------------|------------|----------------------------------------------------|
 | **MongoDB**   | Mongoose   | `MONGO_URI=mongodb://127.0.0.1:27017/{name}`       |
-| **PostgreSQL**| Prisma     | `DATABASE_URL=postgresql://{user}:{pass}@localhost:5432/{name}` |
-| **MySQL**     | Prisma     | `DATABASE_URL=mysql://{user}:{pass}@localhost:3306/{name}`      |
+| **PostgreSQL**| Prisma v6  | `DATABASE_URL=postgresql://{user}:{pass}@localhost:5432/{name}` |
+| **MySQL**     | Prisma v6  | `DATABASE_URL=mysql://{user}:{pass}@localhost:3306/{name}`      |
 
 The script automatically handles:
 - **MongoDB**: installs `mongoose` + `express-mongo-sanitize`
-- **PostgreSQL / MySQL**: installs `@prisma/client` + `prisma`, generates Prisma Client via `postinstall` script, pushes schema to database
+- **PostgreSQL / MySQL**: installs `@prisma/client` + `prisma@6.19.3`, generates Prisma Client via `postinstall` script, pushes schema to database
 
 > **Credential prompts**: When selecting `postgres` or `mysql`, the script will ask for a database username and password (defaults: `postgres`/`postgres` for PostgreSQL, `root`/`(empty)` for MySQL).
+
+> **Express 5 note**: This boilerplate uses **Express 5.2.1** (stable). The admin panel wildcard route is already updated to the new syntax: `/admin/{*path}` (not `/admin/*` as in Express 4).
 
 ---
 
@@ -181,13 +199,13 @@ sudo systemctl start mysql
 
 ## 📦 Tech Stack
 
-| Layer    | Technology                           |
-|----------|--------------------------------------|
-| Backend  | Express.js, Prisma ORM / Mongoose    |
-| Frontend | React 18, Vite, React Router         |
-| Database | MongoDB / PostgreSQL / MySQL         |
-| Proxy    | NGINX                                |
-| Design   | Atomic Design Pattern                 |
+| Layer    | Technology                                    |
+|----------|-----------------------------------------------|
+| Backend  | Express.js 5, Prisma ORM 6 / Mongoose 9      |
+| Frontend | React 19, Vite 8, React Router 7              |
+| Database | MongoDB / PostgreSQL / MySQL                   |
+| Proxy    | NGINX                                         |
+| Design   | Atomic Design Pattern                          |
 
 ---
 
