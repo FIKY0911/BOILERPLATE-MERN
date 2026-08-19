@@ -69,7 +69,7 @@ const __filename = fileURLToPath(import.meta.url);
 const __dirname = path.dirname(__filename);
 
 app.use('/admin', express.static(path.join(__dirname, 'src/views/admin/dist')));
-app.get('/admin/*', (req, res) => {
+app.get('/admin/{*path}', (req, res) => {
   res.sendFile(path.join(__dirname, 'src/views/admin/dist/index.html'));
 });
 
